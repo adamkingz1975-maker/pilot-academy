@@ -1,0 +1,13 @@
+PILOT ACADEMY – INSTALLATION AUF IPHONE MIT GITHUB PAGES
+
+1. Auf github.com einloggen und ein neues PUBLIC Repository namens pilot-academy erstellen. Keine Vorlage/README initialisieren.
+2. Im Repository über Add file > Upload files die einzelnen Dateien aus diesem ZIP hochladen (NICHT die ZIP-Datei selbst). Die Dateien müssen direkt im Repository-Hauptverzeichnis liegen.
+3. Commit changes auswählen.
+4. Settings > Pages > Build and deployment > Source: Deploy from a branch.
+5. Branch: main, Folder: /(root), dann Save.
+6. Nach erfolgreicher Veröffentlichung in GitHub Pages die dort angezeigte HTTPS-Adresse öffnen. Üblicherweise https://BENUTZERNAME.github.io/pilot-academy/ (BENUTZERNAME ersetzen; erst nutzen, wenn veröffentlicht).
+7. Auf dem iPhone 16 Pro Max: Adresse in Safari öffnen > Teilen > Zum Home-Bildschirm > Als Web-App öffnen > Hinzufügen.
+8. Einmal mit Internet laden, anschließend Flugmodus testen.
+
+WICHTIG: GitHub Pages ist öffentlich. Keine persönlichen Daten oder Zugangsdaten in Dateien ablegen.
+Dies ist ein einfacher Lernprototyp mit 4 Beispiellektionen und 6 Übungsfragen, KEINE vollständige PPL-Ausbildung. Freie Sprach-KI und Offline-Spracherkennung fehlen. Offline-Sprachausgabe ist geräteabhängig. Der Lernfortschritt ist nur lokal gespeichert und kann bei Datenlöschung verschwinden.
