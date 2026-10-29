@@ -1,9 +1,9 @@
-import { lessons, questions } from './content.js?v=1.1.0';
-import { loadProgress, saveProgress, clearProgress } from './storage.js?v=1.1.0';
-import { createQuestion, submitAnswer } from './quiz.js?v=1.1.0';
-import { createOfflineManager } from './offline.js?v=1.1.0';
-import { renderApp, renderOfflinePanel } from './ui.js?v=1.1.0';
-import { translate } from './i18n.js?v=1.1.0';
+import { lessons, questions } from './content.js?v=1.1.1';
+import { loadProgress, saveProgress, clearProgress } from './storage.js?v=1.1.1';
+import { createQuestion, submitAnswer } from './quiz.js?v=1.1.1';
+import { createOfflineManager } from './offline.js?v=1.1.1';
+import { renderApp, renderOfflinePanel } from './ui.js?v=1.1.1';
+import { translate } from './i18n.js?v=1.1.1';
 export function startApp() {
 let storage;
 try { storage = window.localStorage; } catch { /* Storage may be blocked by Safari. */ }

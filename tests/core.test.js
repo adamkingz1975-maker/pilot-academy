@@ -54,11 +54,11 @@ test('offline release covers every module and its hashes match the local files',
  const release=box.self.PILOT_RELEASE;
  for(const name of await readdir(new URL('../src/',import.meta.url))) assert.ok(release.assets.some(a=>a.url.split('?')[0]==='./src/'+name),name);
  for(const asset of release.assets) {
-  const name=asset.url==='./'?'index.html':asset.url.split('?')[0];
+  const name=asset.url==='./'?'index.html':asset.url==='./recovery/'?'recovery/index.html':asset.url.split('?')[0];
   const bytes=await readFile(new URL('../'+name,import.meta.url));
   assert.equal(createHash('sha256').update(bytes).digest('hex'),asset.sha256);
  }
- assert.match(release.id,/^1\.1\.0-[a-f0-9]{16}$/);
+ assert.match(release.id,/^1\.1\.1-[a-f0-9]{16}$/);
 });
 test('all subject descriptions and both manifest identities are present',async()=>{
  const {readFile}=await import('node:fs/promises');
@@ -67,4 +67,15 @@ test('all subject descriptions and both manifest identities are present',async()
  const pl=JSON.parse(await readFile(new URL('../manifest.pl.webmanifest',import.meta.url),'utf8'));
  for(const key of ['id','start_url','scope','name'])assert.equal(de[key],pl[key]);
  assert.equal(de.lang,'de');assert.equal(pl.lang,'pl');
+});
+
+test('release uses canonical directory HTML addresses for both hosting prefixes',async()=>{
+ const {readFile}=await import('node:fs/promises');const vm=await import('node:vm');
+ const box={self:{}};vm.runInNewContext(await readFile(new URL('../release-manifest.js',import.meta.url),'utf8'),box);
+ const assets=box.self.PILOT_RELEASE.assets;
+ assert.ok(assets.some(a=>a.url==='./'));assert.ok(assets.some(a=>a.url==='./recovery/'));
+ assert.ok(!assets.some(a=>a.url.includes('index.html')));
+ for(const base of ['https://example.workers.dev/','https://example.github.io/pilot-academy/'])for(const asset of assets){
+  const url=new URL(asset.url,base);assert.equal(url.origin,new URL(base).origin);assert.ok(url.pathname.startsWith(new URL(base).pathname));
+ }
 });

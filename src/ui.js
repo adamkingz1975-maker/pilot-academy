@@ -1,6 +1,6 @@
-import { subjects, lessons, questions } from './content.js?v=1.1.0';
-import { getTrainingVariant } from './training.js?v=1.1.0';
-import { translate } from './i18n.js?v=1.1.0';
+import { subjects, lessons, questions } from './content.js?v=1.1.1';
+import { getTrainingVariant } from './training.js?v=1.1.1';
+import { translate } from './i18n.js?v=1.1.1';
 export const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function renderOfflinePanel(state) {
   const t = key => escapeHtml(translate(state.progress.lang,key));
@@ -29,6 +29,6 @@ export function renderApp(state) {
       return `<button data-action="answer" data-value="${id}" class="${cls}" ${answered?'disabled':''}>${String.fromCharCode(65+i)} · ${text(option.text)}</button>`;
     }).join('')}</div><p id="quiz-feedback" tabindex="-1" aria-live="polite" aria-atomic="true">${answered?`<strong>${t(session.answeredId===q.correctId?'correct':'wrong')}</strong> ${text(q.explanation)}`:''}</p>${answered?button('next',t('next'),'','primary'):''}</section><p>${t('stats',{score:p.score,attempts:p.attempts})} ${t('examples')}</p>`;
   }
-  if (state.tab === 'settings') body=`<h1>${t('settings')}</h1><section class="card"><h3>${t('country')}</h3><div class="actions">${['DE','PL'].map(country=>button('country',t(country==='DE'?'countryDE':'countryPL'),country,variant.id===country?'active':'')).join('')}</div><p>${t('countryInfo')}</p><p>${t('nationalPending',{country:countryLabel})}</p></section><section class="card"><h3>${t('language')}</h3><div class="actions">${languages}</div><p>${t('audioInfo')}</p></section><section class="card"><h3>${t('privacy')}</h3><p>${t('privacyInfo')}</p><p>${t('installInfo')}</p>${button('checkUpdate',t('checkUpdate'))}${button('reset',t('reset'))}</section>`;
+  if (state.tab === 'settings') body=`<h1>${t('settings')}</h1><section class="card"><h3>${t('country')}</h3><div class="actions">${['DE','PL'].map(country=>button('country',t(country==='DE'?'countryDE':'countryPL'),country,variant.id===country?'active':'')).join('')}</div><p>${t('countryInfo')}</p><p>${t('nationalPending',{country:countryLabel})}</p></section><section class="card"><h3>${t('language')}</h3><div class="actions">${languages}</div><p>${t('audioInfo')}</p></section><section class="card"><h3>${t('privacy')}</h3><p>${t('privacyInfo')}</p><p>${t('installInfo')}</p><p><a href="./recovery/">${t('recovery')}</a></p>${button('checkUpdate',t('checkUpdate'))}${button('reset',t('reset'))}</section>`;
   return `<header><div class="brand"><span class="wing">✈</span> PILOT ACADEMY <small>· PPL(A)</small></div><span class="badge" id="offline">${t(state.offlineStatus)}</span></header><nav aria-label="${t('syllabus')}">${['home','subjects','book','quiz','settings'].map(tab=>button('tab',t(tab),tab,state.tab===tab?'active':'')).join('')}</nav>${state.warning?`<p class="notice" role="status">${t(state.warning)}</p>`:''}<p class="muted" id="training-context">${t('shared')} · ${t('country')}: ${escapeHtml(countryLabel)}</p><section id="offline-panel" aria-label="${t('offlineManagement')}">${renderOfflinePanel(state)}</section><div id="view">${body.replaceAll('<h1>','<h1 tabindex="-1">')}</div><footer>${t('footer')}</footer>`;
 }

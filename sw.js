@@ -1,19 +1,31 @@
-importScripts('./release-manifest.js?v=1.1.0');
+importScripts('./release-manifest.js?v=1.1.1');
 const RELEASE = self.PILOT_RELEASE;
 const PREFIX = `pilot-academy-${encodeURIComponent(self.registration.scope)}-`;
 const CACHE = `${PREFIX}${RELEASE.id}`;
 const ASSETS = RELEASE.assets;
 const absolute = path => new URL(path,self.registration.scope).href;
+const htmlAsset = asset => asset.url === './' || asset.url === './recovery/';
+async function checksum(response) {
+  const digest=await crypto.subtle.digest('SHA-256',await response.clone().arrayBuffer());
+  return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+}
+function navigationResponse(response) {
+  // A synthetic response has neither a redirect chain nor a foreign final URL.
+  // fetch() already decoded the body, so transport encoding/length must not survive.
+  const headers=new Headers(response.headers);
+  for(const name of ['content-encoding','content-length','transfer-encoding','location']) headers.delete(name);
+  return new Response(response.clone().body,{status:200,headers});
+}
+async function verifiedResponse(asset) {
+  const response=await fetch(new Request(absolute(asset.url),{cache:'reload',credentials:'same-origin',redirect:'error'}));
+  if(response.status!==200 || response.type==='opaque' || response.type==='opaqueredirect' || response.redirected || response.url!==absolute(asset.url)) throw Error('Unexpected release response');
+  if(htmlAsset(asset) && !/^text\/html(?:;|$)/i.test(response.headers.get('content-type') || '')) throw Error('Expected HTML');
+  if(await checksum(response)!==asset.sha256) throw Error('Mixed release files');
+  return htmlAsset(asset)?navigationResponse(response):response;
+}
 async function verifiedAssets() {
-  // Validate the entire release before writing to the active cache.
-  return Promise.all(ASSETS.map(async asset => {
-    const response=await fetch(new Request(absolute(asset.url),{cache:'reload',credentials:'same-origin'}));
-    if (!response.ok || response.type==='opaque') throw Error('Incomplete release');
-    const digest=await crypto.subtle.digest('SHA-256',await response.clone().arrayBuffer());
-    const hex=[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
-    if(hex!==asset.sha256) throw Error('Mixed release files');
-    return [absolute(asset.url),response];
-  }));
+  // Validate the entire release before changing the cache. Redirects are rejected.
+  return Promise.all(ASSETS.map(async asset=>[absolute(asset.url),await verifiedResponse(asset)]));
 }
 async function installAssets() {
   const entries=await verifiedAssets();
@@ -22,7 +34,13 @@ async function installAssets() {
 }
 async function offlineReady() {
   const cache=await caches.open(CACHE);
-  return (await Promise.all(ASSETS.map(asset=>cache.match(absolute(asset.url))))).every(Boolean);
+  const valid=await Promise.all(ASSETS.map(async asset=>{
+    const response=await cache.match(absolute(asset.url));
+    if(!response || response.status!==200 || response.redirected || ['opaque','opaqueredirect'].includes(response.type)) return false;
+    if(htmlAsset(asset) && !/^text\/html(?:;|$)/i.test(response.headers.get('content-type') || '')) return false;
+    return await checksum(response)===asset.sha256;
+  }));
+  return valid.every(Boolean);
 }
 self.addEventListener('install',event=>{
   // Never skipWaiting: the old version keeps its matching files until closed.
@@ -35,7 +53,7 @@ self.addEventListener('activate',event=>{
     for(const key of await caches.keys()) {
       if(key!==CACHE&&(key.startsWith(PREFIX)||/^pilot-academy-v\d+$/.test(key))) {
         const cache=await caches.open(key);
-        if(await cache.match(absolute('./index.html'))) await caches.delete(key);
+        if(await cache.match(absolute('./')) || await cache.match(absolute('./index.html'))) await caches.delete(key);
       }
     }
     await self.clients.claim();
@@ -55,23 +73,25 @@ self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET'||url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope))return;
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE);
-    // Startup retries can have a query string; retain the installed app offline.
-    const request=event.request.mode==='navigate'&&(url.pathname===new URL('./',self.registration.scope).pathname||url.pathname===new URL('./index.html',self.registration.scope).pathname)?absolute('./index.html'):event.request;
-    const cached=await cache.match(request);
-    if(cached)return cached;
-    const requestedURL = typeof request === 'string' ? request : url.href;
-    const known=ASSETS.some(asset=>absolute(asset.url)===requestedURL);
-    // Do not silently replace an evicted release asset with another release.
-    if(known) {
-      const asset=ASSETS.find(asset=>absolute(asset.url)===requestedURL);
-      try {
-        const response=await fetch(new Request(request,{cache:'reload'}));
-        const digest=await crypto.subtle.digest('SHA-256',await response.clone().arrayBuffer());
-        const hex=[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
-        if(!response.ok||hex!==asset.sha256)throw Error();
-        await cache.put(request,response.clone());return response;
-      }catch{return new Response('Release asset unavailable',{status:503});}
+    const home=new URL('./',self.registration.scope).pathname;
+    const recovery=new URL('./recovery/',self.registration.scope).pathname;
+    let key=url.href;
+    if(event.request.mode==='navigate') {
+      if([home,home+'index.html'].includes(url.pathname))key=absolute('./');
+      if([recovery,recovery+'index.html',recovery.slice(0,-1)].includes(url.pathname))key=absolute('./recovery/');
     }
-    return fetch(event.request);
+    const asset=ASSETS.find(asset=>absolute(asset.url)===key);
+    if(!asset)return fetch(event.request);
+    try {
+      let response=await cache.match(key);
+      // Never return an inherited redirected response, even after cache corruption.
+      if(!response || response.redirected || response.status!==200 || ['opaque','opaqueredirect'].includes(response.type) || await checksum(response)!==asset.sha256) {
+        response=await verifiedResponse(asset);await cache.put(key,response.clone());
+      }
+      return htmlAsset(asset)?navigationResponse(response):response;
+    } catch {
+      if(htmlAsset(asset))return new Response('<!doctype html><html lang="de"><meta charset="utf-8"><title>Pilot Academy</title><h1>Pilot Academy</h1><p>Startdateien nicht verfügbar. Bitte online erneut versuchen oder die Wiederherstellung öffnen. Keine Website-Daten löschen.</p><p lang="pl">Pliki startowe są niedostępne. Spróbuj ponownie online lub otwórz stronę odzyskiwania. Nie usuwaj danych witryny.</p><a href="'+absolute('./recovery/')+'">Wiederherstellung / Odzyskiwanie</a></html>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      return new Response('Release asset unavailable',{status:503});
+    }
   })());
 });

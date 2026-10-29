@@ -10,7 +10,7 @@
 <meta name="description" content="Offline-PPL-Lerntrainer Deutsch und Polnisch">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=1.1.0">
+<link rel="stylesheet" href="./styles.css?v=1.1.1">
 <title>Pilot Academy · PPL(A)</title>
 </head>
 <body>
@@ -19,6 +19,7 @@
 <p id="startup-status" role="status"><span lang="de">Die Anwendung wird geladen …</span><br><span lang="pl">Trwa ładowanie aplikacji …</span></p>
 <p><span lang="de">Falls die App nicht startet, erneut versuchen. Dein Lernfortschritt bleibt erhalten.</span><br><span lang="pl">Jeśli aplikacja się nie uruchomi, spróbuj ponownie. Twoje postępy zostaną zachowane.</span></p>
 <a id="startup-retry" href="./?startup-retry=1"><span lang="de">Erneut versuchen</span> / <span lang="pl">Spróbuj ponownie</span></a>
+<p><a href="./recovery/"><span lang="de">Wiederherstellung und Fortschrittssicherung</span> / <span lang="pl">Odzyskiwanie i kopia postępów</span></a></p>
 <noscript><p lang="de">Bitte JavaScript aktivieren.</p><p lang="pl">Włącz JavaScript.</p></noscript>
 </section>
 <main id="app"></main>
@@ -53,7 +54,7 @@ document.querySelector('#startup-retry').addEventListener('click', event => {
   location.replace(url.href);
 });
 const timer = setTimeout(failed, 15000);
-import('./src/app.js?v=1.1.0').then(module => {
+import('./src/app.js?v=1.1.1').then(module => {
   module.startApp();
   clearTimeout(timer);
   startup.hidden = true;

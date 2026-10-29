@@ -123,3 +123,61 @@ Die Fortschrittsspeicherung behält denselben Schlüssel und dasselbe Version-1-
 Format wie Phase 1.0. Die Migration der ursprünglichen Kapitelnummern bleibt
 bestehen. Cache-Reparatur und Worker-Update verändern keine Lernfortschrittsdaten.
 Origin und App-Adresse müssen für ein bestehendes Gerät beibehalten werden.
+
+VERSION 1.1.1 – SAFARI-NAVIGATION UND WIEDERHERSTELLUNG
+
+Ursache des Fehlers in 1.1: Einige Hosts leiten /index.html auf / weiter. Der
+alte Worker folgte der Weiterleitung, speicherte die Response einschließlich
+Redirect-Historie und gab sie später für Navigationen zurück. Gleiche HTML-Bytes
+bedeuteten deshalb trotz richtiger Prüfsumme keine geeignete Navigationsantwort.
+
+1.1.1 lädt HTML nur über kanonische Verzeichnisadressen: ./ und ./recovery/.
+Die physischen Dateien index.html und recovery/index.html bleiben im Uploadpaket,
+werden aber nicht über ihre möglicherweise weitergeleiteten Dateiadressen
+vorabgerufen. Der Generator ordnet die jeweilige HTML-Prüfsumme der kanonischen
+Adresse zu. Die App-Startadresse bleibt ./; bei Cloudflare ist dies /, auf GitHub
+Pages /pilot-academy/.
+
+Release-Downloads verwenden redirect:error. Status, endgültige Adresse, MIME-Typ
+für HTML und SHA-256 werden geprüft. Weitergeleitete oder beschädigte gespeicherte
+Antworten gelten nicht als offline bereit. HTML-Navigationsantworten werden aus
+geprüften Bytes neu erzeugt; Transport-Encoding/-Länge und Location werden dabei
+entfernt. Bei Cache-Problemen ist nur eine verifizierte Reparatur erlaubt. Kann
+sie offline nicht gelingen, erscheint eine zweisprachige Fehlerseite mit Link
+zur Wiederherstellung statt einer ungeeigneten Redirect-Response.
+
+Wiederherstellung:
+- Cloudflare-Root: https://DEIN-HOST/recovery/
+- GitHub-Pages-Unterpfad: https://DEIN-HOST/pilot-academy/recovery/
+- recovery/index.html ist eigenständig: Inline-CSS und Inline-JavaScript, keine
+  Abhängigkeit von App-Modulen. Sprache ist bewusst zweisprachig.
+- Sicherung liest ausschließlich pilot-academy-state und bietet die unveränderte
+  Zeichenfolge einschließlich Quelle und Zeitpunkt als JSON-Download an. Dieser
+  Download ist eine Sicherung; eine automatische Importfunktion gibt es noch nicht.
+- Updateprüfung registriert/aktualisiert sw.js an der bisherigen App-Basis.
+  Es gibt kein unregister(), kein skipWaiting() und kein Löschen des Fortschritts.
+- Bei wartendem Update alle App-Ansichten einschließlich recovery/ schließen und
+  dann erneut öffnen. Nicht Website-Daten löschen oder die App entfernen.
+- Der fehlerhafte Worker aus 1.1 behandelt recovery/ als unbekannte Adresse und
+  kann sie online vom Server laden. Dies ist lokal für beide Basispfade geprüft.
+- Grenzen: Ist recovery/ noch nicht bereitgestellt, offline nicht vorhanden,
+  vom Server umgeleitet/blockiert oder von einem anderen alten Worker abgefangen,
+  kann diese Seite das nicht garantiert umgehen. Neue HTML-Downloads müssen unter
+  den kanonischen Adressen unmittelbar Status 200 liefern. Kein alternativer Host:
+  Ein anderer Origin könnte auf den bestehenden Fortschritt nicht zugreifen.
+- Ein bereits offener alter Tab kann die Aktivierung weiterhin verhindern.
+- iOS kann Downloads anders darstellen. Das Speichern der Sicherung in Dateien
+  sowie Safari, installierte Web-App und VoiceOver müssen auf dem Gerät geprüft werden.
+
+Zusätzliche Regressionstests:
+  npm run test:redirects
+Sie simulieren 301/302/307/308 unter / und /pilot-academy/, Neustarts, Query- und
+index.html-Aliasse, Offline-Betrieb, bewusst injizierte Redirect-Cache-Einträge,
+Ablehnung weitergeleiteter kanonischer Assets, Grenzen einer fehlenden recovery/
+sowie den Wechsel des fehlerhaften Commits 85c1744 auf 1.1.1 mit unverändertem
+Fortschritt. Alle Browserprofile und Testdaten sind isolierte temporäre Fixtures.
+Es werden keine Browserdaten eines echten Geräts oder Nutzerkontos gelöscht.
+
+Für ein künftiges Uploadpaket zusätzlich recovery/index.html einbeziehen. Runtime-
+Dateien, release-manifest.js und Release-Version müssen gemeinsam bereitgestellt
+werden. Eine Bereitstellung oder ein ZIP-Upload erfolgt nicht durch diese Tests.

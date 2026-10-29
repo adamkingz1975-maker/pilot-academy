@@ -40,3 +40,20 @@ The next-release fixture changes worker/release metadata only in memory. It is
 not a deployment. Chromium checks do not replace actual iPhone Safari, installed
 PWA, VoiceOver, storage-pressure, or device-voice testing. HTTP caching headers on
 GitHub Pages also require post-deployment observation after explicit approval.
+
+## Version 1.1.1 redirect regressions
+
+`npm run test:redirects` uses the exact historical 1.1 commit `85c1744...` and the
+local 1.1.1 files. It runs at both `/` and `/pilot-academy/` with HTTP 301, 302, 307
+and 308 index redirects. The test reproduces the historical bad cache and failed
+navigation, serves the independent recovery page through that old worker, updates
+the existing registration, closes controlled pages, and checks offline startup
+and byte-identical localStorage progress. It also tests a deliberately unavailable
+recovery page, a canonical HTML redirect, backup download, and injected redirected
+cache entries. Isolation is through disposable Playwright contexts; these fixtures
+are not connected to the user's Safari data.
+
+The release manifest lists `./` and `./recovery/`, mapped to physical index.html
+files by the generator and test server. Do not reinstate network precaching of
+`./index.html`. Hosting must return the canonical directory URLs directly as 200
+HTML. Actual iOS Safari and deployed Cloudflare/GitHub headers remain manual checks.

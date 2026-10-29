@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pilot Academy – Wiederherstellung / Odzyskiwanie</title>
+<style>body{font:18px system-ui;max-width:48rem;margin:auto;padding:24px;line-height:1.5}button,a{display:inline-block;padding:12px;margin:8px 0}button:focus-visible,a:focus-visible{outline:3px solid #176b96}#status{border:1px solid;padding:12px;white-space:pre-line}</style></head>
+<body><main><h1>Pilot Academy</h1><h2>Wiederherstellung / <span lang="pl">Odzyskiwanie</span></h2>
+<p>Diese Seite löscht keine Browserdaten und keinen Lernfortschritt. Sichere deinen Fortschritt vor dem Update. Schließe danach alle Ansichten der App einschließlich dieser Seite und öffne die Startadresse erneut.</p>
+<p lang="pl">Ta strona nie usuwa danych przeglądarki ani postępów. Zapisz kopię postępów przed aktualizacją. Następnie zamknij wszystkie widoki aplikacji, także tę stronę, i ponownie otwórz adres startowy.</p>
+<button id="backup">Lernfortschritt sichern / Zapisz kopię postępów</button><br>
+<button id="update">Reparaturupdate prüfen / Sprawdź aktualizację naprawczą</button>
+<p id="status" role="status" aria-live="polite" tabindex="-1">Bereit. / Gotowe.</p>
+<a id="home" href="../">Zur App / Wróć do aplikacji</a>
+<p><strong>Grenzen:</strong> Für das Herunterladen eines Updates ist Internet erforderlich. Die Seite muss unter derselben Website-Adresse erreichbar sein. Blockiert ein alter Worker auch diese Seite oder leitet der Server sie ungeeignet weiter, ist eine gesonderte Wiederherstellung nötig. Eine garantierte Umgehung aller alten Worker ist nicht möglich.</p>
+<p lang="pl"><strong>Ograniczenia:</strong> Pobranie aktualizacji wymaga internetu. Strona musi działać pod tym samym adresem witryny. Jeśli stary worker blokuje również tę stronę lub serwer przekierowuje ją nieprawidłowo, potrzebne jest osobne odzyskiwanie. Nie można zagwarantować obejścia każdego starego workera.</p>
+<noscript><p>JavaScript erforderlich. / Wymagany JavaScript.</p></noscript>
+<script>
+const base=new URL(location.href);
+base.pathname=base.pathname.replace(/recovery(?:\/index\.html|\/)?$/,'');base.search='';base.hash='';
+document.querySelector('#home').href=base.href;
+const status=document.querySelector('#status');
+function report(text){status.textContent=text;status.focus();}
+document.querySelector('#backup').addEventListener('click',()=>{
+ try{
+  const raw=localStorage.getItem('pilot-academy-state');
+  if(raw===null){report('Kein gespeicherter Fortschritt vorhanden. / Brak zapisanych postępów.');return;}
+  const blob=new Blob([JSON.stringify({origin:location.origin,storageKey:'pilot-academy-state',savedAt:new Date().toISOString(),raw},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Pilot-Academy-Fortschritt-Sicherung.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  report('Sicherungsdownload angefordert. Bitte in Dateien speichern. / Rozpoczęto pobieranie kopii. Zapisz ją w Plikach.');
+ }catch{report('Browser-Speicher nicht zugänglich. Keine Daten verändert. / Pamięć przeglądarki jest niedostępna. Dane nie zostały zmienione.');}
+});
+document.querySelector('#update').addEventListener('click',async()=>{
+ const button=document.querySelector('#update');button.disabled=true;
+ let timer;
+ try{
+  if(!window.isSecureContext||!('serviceWorker' in navigator))throw Error();
+  report('Update wird geprüft … / Sprawdzanie aktualizacji …');
+  const work=(async()=>{
+   let registration=await navigator.serviceWorker.getRegistration(base.href);
+   if(registration&&registration.scope!==base.href)throw Error('scope');
+   registration=await navigator.serviceWorker.register(new URL('sw.js',base).href,{scope:base.href,updateViaCache:'none'});
+   await registration.update();
+   const installing=registration.installing;
+   if(installing)await new Promise((resolve,reject)=>{
+    function changed(){if(installing.state==='installed'||installing.state==='activated')resolve();else if(installing.state==='redundant')reject(Error());}
+    installing.addEventListener('statechange',changed);changed();
+   });
+   if(registration.waiting)report('Update bereit. Alle App-Ansichten und diese Seite schließen, dann App erneut öffnen. Keine Website-Daten löschen. / Aktualizacja gotowa. Zamknij wszystkie widoki aplikacji i tę stronę, a następnie ponownie otwórz aplikację. Nie usuwaj danych witryny.');
+   else if(registration.active?.state==='activated')report('Worker aktiv. App erneut öffnen; bei weiterem Fehler diese Seite behalten und Diagnose anfordern. / Worker jest aktywny. Otwórz aplikację ponownie; jeśli błąd pozostaje, zachowaj tę stronę i poproś o diagnozę.');
+   else throw Error();
+  })();
+  await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),25000);})]);
+ }catch{report('Update nicht bestätigt. Verbindung und Server prüfen; keine Browserdaten löschen. / Aktualizacja niepotwierdzona. Sprawdź połączenie i serwer; nie usuwaj danych przeglądarki.');}
+ finally{clearTimeout(timer);button.disabled=false;}
+});
+</script></main></body></html>

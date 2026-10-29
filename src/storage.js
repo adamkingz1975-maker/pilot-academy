@@ -1,4 +1,4 @@
-import { lessons } from './content.js?v=1.1.0';
+import { lessons } from './content.js?v=1.1.1';
 export const STORAGE_KEY = 'pilot-academy-state';
 const lessonIds = lessons.map(lesson => lesson.id);
 const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;

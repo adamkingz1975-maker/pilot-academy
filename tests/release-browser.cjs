@@ -12,7 +12,8 @@ const hits=[];
 const server=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://localhost');
  if(!url.pathname.startsWith('/pilot-academy/')) {res.writeHead(404);return res.end();}
- const name=decodeURIComponent(url.pathname.slice('/pilot-academy/'.length))||'index.html';
+ let name=decodeURIComponent(url.pathname.slice('/pilot-academy/'.length))||'index.html';
+ if(name.endsWith('/')) name+='index.html';
  if(name.includes('..')){res.writeHead(404);return res.end();}
  const isAssetFetch=req.headers['sec-fetch-dest']==='empty';
  hits.push({name,query:url.search,dest:req.headers['sec-fetch-dest'],mode:req.headers['sec-fetch-mode']});
@@ -140,6 +141,6 @@ async function update(page){await page.evaluate(async()=>{const r=await navigato
   console.log('PASS: mixed release rejected, working cache/progress preserved, retry and waiting-update notice in DE/PL');await context.close();mode='new';
  }
  assert.ok(blockedRequests>=3);
- assert.ok(hits.some(h=>h.name==='src/app.js'&&h.query==='?v=1.1.0'));
+ assert.ok(hits.some(h=>h.name==='src/app.js'&&h.query==='?v='+release.version));
  console.log(`ALL RELEASE CHECKS PASSED (${release.id})`);
 })().catch(e=>{console.error(e);console.error('Recent module requests:',hits.filter(hit=>hit.name==='src/ui.js').slice(-12));process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.close();});
