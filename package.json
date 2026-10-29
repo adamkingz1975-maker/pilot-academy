@@ -1,0 +1,15 @@
+{
+  "name": "pilot-academy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "start": "python3 -m http.server 8000",
+    "prepare:release": "node scripts/prepare-release.js",
+    "check:release": "node scripts/prepare-release.js --check",
+    "test:browser": "node tests/release-browser.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
